@@ -9,38 +9,59 @@ export type TemplateId =
   | "weekly-reflection"
   | "custom";
 
-export interface Template {
+export type QuestionType = "textarea" | "text" | "select";
+
+export interface QuestionSelectOption {
+  label: string;
+  value: string;
+}
+
+export interface Question {
+  id: string;
+  label: string;
+  placeholder: string;
+  required: boolean;
+  type: QuestionType;
+  helpText?: string;
+  options?: QuestionSelectOption[];
+}
+
+export interface TemplateConfig {
   id: TemplateId;
   title: string;
   description: string;
-  iconName: string;
+  icon: string;
   badge?: string;
-  promptQuestion: string;
-  defaultPlaceholder: string;
   category: "thought-leadership" | "updates" | "learning" | "personal";
+  questions: Question[];
 }
 
-export interface Draft {
+export type UserAnswers = Record<string, string>;
+
+export interface DraftItem {
   id: string;
-  title: string;
-  content: string;
   templateId: TemplateId;
+  templateTitle: string;
+  title: string;
+  answers: UserAnswers;
+  wordCount: number;
+  readTimeMinutes: number;
   createdAt: string;
   updatedAt: string;
-  characterCount: number;
-  wordCount: number;
-  tags: string[];
+  status: "draft" | "completed" | "archived";
 }
 
-export interface UserPreferences {
-  tone: "authentic" | "technical" | "concise" | "storytelling" | "thought-provoking";
-  targetAudience: string;
-  includeHashtags: boolean;
-  includeCallToAction: boolean;
-  theme: "dark" | "system" | "light";
-  accentColor: "indigo" | "violet" | "emerald" | "amber" | "sky";
-  aiProvider: "anthropic" | "openai" | "gemini";
-  apiKeyPlaceholder: string;
+export type WritingTone = "professional" | "conversational" | "technical" | "storytelling";
+export type ContentLength = "short" | "medium" | "long";
+export type EmojiUsage = "none" | "minimal" | "moderate";
+export type ParagraphStyle = "compact" | "spacious";
+
+export interface UserWritingPreferences {
+  tone: WritingTone;
+  contentLength: ContentLength;
+  emojiUsage: EmojiUsage;
+  callToAction: boolean;
+  paragraphStyle: ParagraphStyle;
 }
 
 export interface NavItem {

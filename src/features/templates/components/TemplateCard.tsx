@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Template } from "@/types";
+import { TemplateConfig } from "@/types";
 import { cn } from "@/lib/utils";
 import {
   Lightbulb,
@@ -30,7 +30,7 @@ const TEMPLATE_ICON_MAP: Record<string, React.ReactNode> = {
 };
 
 export interface TemplateCardProps {
-  template: Template;
+  template: TemplateConfig;
   className?: string;
 }
 
@@ -46,7 +46,7 @@ export function TemplateCard({ template, className }: TemplateCardProps) {
       {/* Top row with icon & badge */}
       <div className="flex items-center justify-between mb-4">
         <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 group-hover:bg-indigo-950/60 group-hover:border-indigo-800/60 transition-colors shadow-inner">
-          {TEMPLATE_ICON_MAP[template.iconName] || <PenTool className="w-5 h-5" />}
+          {TEMPLATE_ICON_MAP[template.icon] || <PenTool className="w-5 h-5" />}
         </div>
         {template.badge && (
           <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">

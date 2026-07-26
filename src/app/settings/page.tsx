@@ -5,20 +5,31 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { UserWritingPreferences } from "@/types";
 import {
   PenTool,
   Moon,
-  Cpu,
+  Sliders,
   Save,
   Check,
-  Sliders,
   Sun,
+  Layout,
+  MessageSquare,
   Sparkles,
 } from "lucide-react";
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<"writing" | "theme" | "ai">("writing");
+  const [activeTab, setActiveTab] = useState<"writing" | "theme">("writing");
   const [saved, setSaved] = useState<boolean>(false);
+
+  // Preference state placeholders
+  const [prefs, setPrefs] = useState<UserWritingPreferences>({
+    tone: "professional",
+    contentLength: "medium",
+    emojiUsage: "minimal",
+    callToAction: true,
+    paragraphStyle: "spacious",
+  });
 
   const handleSave = () => {
     setSaved(true);
@@ -30,7 +41,7 @@ export default function SettingsPage() {
       {/* Page Header */}
       <PageHeader
         title="Settings"
-        subtitle="Configure your writing style preferences, visual theme, and upcoming AI model integrations."
+        subtitle="Customize your default writing style preferences, output formatting, and appearance."
         action={
           <Button
             variant="primary"
@@ -68,21 +79,6 @@ export default function SettingsPage() {
           <Moon className="w-4 h-4" />
           <span>Theme & Appearance</span>
         </button>
-
-        <button
-          onClick={() => setActiveTab("ai")}
-          className={`pb-3 text-sm font-semibold transition-colors relative flex items-center gap-2 ${
-            activeTab === "ai"
-              ? "text-indigo-400 border-b-2 border-indigo-500"
-              : "text-slate-400 hover:text-slate-200"
-          }`}
-        >
-          <Cpu className="w-4 h-4" />
-          <span>Future AI Settings</span>
-          <Badge variant="indigo" className="ml-1 text-[10px]">
-            Upcoming
-          </Badge>
-        </button>
       </div>
 
       {/* Tab 1: Writing Preferences */}
@@ -90,50 +86,148 @@ export default function SettingsPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Tone & Brand Voice</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-indigo-400" />
+                <span>Writing Preferences</span>
+              </CardTitle>
               <CardDescription>
-                Define how BrandForge shapes your thoughts into LinkedIn posts.
+                Configure the default rules and styling applied when structuring your content.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-5">
+            <CardContent className="space-y-6">
+              {/* Tone */}
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                  Default Tone of Voice
+                  Writing Tone
                 </label>
-                <select className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-slate-200 text-sm focus:border-indigo-500 focus:outline-none">
-                  <option value="authentic">Authentic & Direct (Recommended)</option>
-                  <option value="technical">Technical & Deep-dive</option>
-                  <option value="concise">Concise & Minimal</option>
-                  <option value="storytelling">Storytelling & Narrative</option>
-                  <option value="thought-provoking">Thought-Provoking & Bold</option>
-                </select>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { id: "professional", label: "Professional" },
+                    { id: "conversational", label: "Conversational" },
+                    { id: "technical", label: "Technical" },
+                    { id: "storytelling", label: "Storytelling" },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setPrefs({ ...prefs, tone: item.id as any })}
+                      className={`p-3 rounded-xl border text-sm font-medium transition-all text-center ${
+                        prefs.tone === item.id
+                          ? "bg-indigo-600/20 border-indigo-500/80 text-indigo-200 shadow-sm"
+                          : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
+              {/* Content Length */}
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                  Target Audience Role
+                  Content Length
                 </label>
-                <input
-                  type="text"
-                  defaultValue="Engineers, Tech Leads, Founders, Product Managers"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-slate-200 text-sm focus:border-indigo-500 focus:outline-none"
-                />
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { id: "short", label: "Short (~150 words)" },
+                    { id: "medium", label: "Medium (~300 words)" },
+                    { id: "long", label: "Long (~500+ words)" },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setPrefs({ ...prefs, contentLength: item.id as any })}
+                      className={`p-3 rounded-xl border text-sm font-medium transition-all text-center ${
+                        prefs.contentLength === item.id
+                          ? "bg-indigo-600/20 border-indigo-500/80 text-indigo-200 shadow-sm"
+                          : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="pt-2 flex items-center justify-between border-t border-slate-800/80">
-                <div>
-                  <h4 className="text-sm font-semibold text-white">Include Hashtags</h4>
-                  <p className="text-xs text-slate-400">Automatically append 2-3 relevant hashtags to generated posts.</p>
+              {/* Emoji Usage */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                  Emoji Usage
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { id: "none", label: "None 🚫" },
+                    { id: "minimal", label: "Minimal ✨" },
+                    { id: "moderate", label: "Moderate 🚀🔥" },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setPrefs({ ...prefs, emojiUsage: item.id as any })}
+                      className={`p-3 rounded-xl border text-sm font-medium transition-all text-center ${
+                        prefs.emojiUsage === item.id
+                          ? "bg-indigo-600/20 border-indigo-500/80 text-indigo-200 shadow-sm"
+                          : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
                 </div>
-                <input type="checkbox" defaultChecked className="w-4 h-4 accent-indigo-600 rounded" />
               </div>
 
-              <div className="pt-2 flex items-center justify-between border-t border-slate-800/80">
+              {/* Call To Action */}
+              <div className="pt-3 flex items-center justify-between border-t border-slate-800/80">
                 <div>
-                  <h4 className="text-sm font-semibold text-white">Include Call to Action (CTA)</h4>
-                  <p className="text-xs text-slate-400">Append an engaging question at the end to invite discussion.</p>
+                  <h4 className="text-sm font-semibold text-white">Call to Action (CTA)</h4>
+                  <p className="text-xs text-slate-400">Append an engaging takeaway or question to invite audience comments.</p>
                 </div>
-                <input type="checkbox" defaultChecked className="w-4 h-4 accent-indigo-600 rounded" />
+                <button
+                  type="button"
+                  onClick={() => setPrefs({ ...prefs, callToAction: !prefs.callToAction })}
+                  className={`w-12 h-6 rounded-full transition-colors relative p-0.5 ${
+                    prefs.callToAction ? "bg-indigo-600" : "bg-slate-800"
+                  }`}
+                >
+                  <span
+                    className={`block w-5 h-5 rounded-full bg-white transition-transform ${
+                      prefs.callToAction ? "translate-x-6" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Paragraph Style */}
+              <div className="pt-3 flex items-center justify-between border-t border-slate-800/80">
+                <div>
+                  <h4 className="text-sm font-semibold text-white">Paragraph Style</h4>
+                  <p className="text-xs text-slate-400">Choose between compact paragraphs or spacious line breaks.</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPrefs({ ...prefs, paragraphStyle: "compact" })}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-semibold ${
+                      prefs.paragraphStyle === "compact"
+                        ? "bg-indigo-600/20 border-indigo-500 text-indigo-300"
+                        : "bg-slate-900 border-slate-800 text-slate-400"
+                    }`}
+                  >
+                    Compact
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPrefs({ ...prefs, paragraphStyle: "spacious" })}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-semibold ${
+                      prefs.paragraphStyle === "spacious"
+                        ? "bg-indigo-600/20 border-indigo-500 text-indigo-300"
+                        : "bg-slate-900 border-slate-800 text-slate-400"
+                    }`}
+                  >
+                    Spacious
+                  </button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -161,71 +255,14 @@ export default function SettingsPage() {
                 <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800 opacity-60 flex flex-col items-center justify-center gap-2 cursor-not-allowed">
                   <Sun className="w-6 h-6 text-slate-500" />
                   <span className="text-sm font-medium text-slate-400">Light Mode</span>
-                  <span className="text-[10px] text-slate-500">Disabled</span>
+                  <span className="text-[10px] text-slate-500 font-mono">Disabled</span>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800 opacity-60 flex flex-col items-center justify-center gap-2 cursor-not-allowed">
                   <Sliders className="w-6 h-6 text-slate-500" />
                   <span className="text-sm font-medium text-slate-400">System Preference</span>
-                  <span className="text-[10px] text-slate-500">Disabled</span>
+                  <span className="text-[10px] text-slate-500 font-mono">Disabled</span>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                  Accent Color Theme
-                </label>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-indigo-600 ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-950 cursor-pointer" />
-                  <div className="w-8 h-8 rounded-full bg-purple-600 opacity-60 cursor-pointer" />
-                  <div className="w-8 h-8 rounded-full bg-emerald-600 opacity-60 cursor-pointer" />
-                  <div className="w-8 h-8 rounded-full bg-amber-600 opacity-60 cursor-pointer" />
-                  <div className="w-8 h-8 rounded-full bg-sky-600 opacity-60 cursor-pointer" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Tab 3: Future AI Settings */}
-      {activeTab === "ai" && (
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-indigo-400" />
-                <span>AI Model Provider (Future Integration)</span>
-              </CardTitle>
-              <CardDescription>
-                In upcoming sprints, connect your custom API keys or select built-in intelligence models.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                  Preferred AI Engine
-                </label>
-                <select disabled className="w-full bg-slate-900/60 border border-slate-800 rounded-xl p-3 text-slate-400 text-sm cursor-not-allowed">
-                  <option value="anthropic">Anthropic Claude 3.5 Sonnet (Default)</option>
-                  <option value="openai">OpenAI GPT-4o</option>
-                  <option value="gemini">Google Gemini 1.5 Pro</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                  API Key Placeholder
-                </label>
-                <input
-                  type="password"
-                  disabled
-                  placeholder="sk-ant-api03-xxxxxxxxxxxxxxxxxxxx"
-                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl p-3 text-slate-500 text-sm cursor-not-allowed font-mono"
-                />
-                <p className="mt-1 text-xs text-slate-500">
-                  AI generation is intentionally disabled in this UI foundation sprint.
-                </p>
               </div>
             </CardContent>
           </Card>
