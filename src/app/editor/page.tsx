@@ -5,13 +5,14 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getTemplateById } from "@/lib/templates";
 import { UserAnswers } from "@/types";
+import { GenerationResult, RefinementType, GeneratePostAPIResponse } from "@/lib/ai/types";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ProgressSteps } from "@/features/editor/components/ProgressSteps";
 import { QuestionCard } from "@/features/editor/components/QuestionCard";
 import { ContentPreview } from "@/features/editor/components/ContentPreview";
 import { EditorToolbar } from "@/features/editor/components/EditorToolbar";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles, AlertCircle, RefreshCw } from "lucide-react";
 
 function EditorContent() {
   const searchParams = useSearchParams();
@@ -20,12 +21,98 @@ function EditorContent() {
 
   // Structured answers state: { [questionId: string]: string }
   const [answers, setAnswers] = useState<UserAnswers>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Generation state
+  const [generatedResult, setGeneratedResult] = useState<GenerationResult | null>(null);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [apiError, setApiError] = useState<{ code: string; message: string } | null>(null);
+  const [copied, setCopied] = useState<boolean>(false);
 
   const handleAnswerChange = (questionId: string, value: string) => {
     setAnswers((prev) => ({
       ...prev,
       [questionId]: value,
     }));
+
+    // Clear field-level error when user types
+    if (fieldErrors[questionId]) {
+      setFieldErrors((prev) => {
+        const updated = { ...prev };
+        delete updated[questionId];
+        return updated;
+      });
+    }
+  };
+
+  // Field-level validation for required questions
+  const validateRequiredFields = (): boolean => {
+    const errors: Record<string, string> = {};
+    template.questions.forEach((q) => {
+      if (q.required && (!answers[q.id] || answers[q.id].trim().length === 0)) {
+        errors[q.id] = "This question is required to generate your draft.";
+      }
+    });
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // API Call service for Generation & Refinements
+  const handleGenerate = async (refinementType?: RefinementType) => {
+    setApiError(null);
+
+    // Validate required fields for initial generation
+    if (!refinementType && !validateRequiredFields()) {
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateId: template.id,
+          answers,
+          writingPreferences: {
+            tone: "professional",
+            contentLength: "medium",
+            emojiUsage: "minimal",
+            callToAction: true,
+            paragraphStyle: "spacious",
+          },
+          refinementType,
+          currentDraft: generatedResult?.content,
+        }),
+      });
+
+      const data: GeneratePostAPIResponse = await res.json();
+
+      if (!data.success) {
+        setApiError({
+          code: data.error.code,
+          message: data.error.message,
+        });
+      } else {
+        setGeneratedResult(data.data);
+      }
+    } catch (err: unknown) {
+      setApiError({
+        code: "NETWORK_ERROR",
+        message: "Failed to connect to the generation server. Please check your network connection.",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCopy = () => {
+    if (!generatedResult?.content) return;
+    navigator.clipboard.writeText(generatedResult.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const answeredCount = template.questions.filter(
@@ -63,7 +150,22 @@ function EditorContent() {
       </div>
 
       {/* Progress Steps Indicator */}
-      <ProgressSteps currentStep={2} />
+      <ProgressSteps currentStep={generatedResult ? 3 : 2} />
+
+      {/* API Error Banner */}
+      {apiError && (
+        <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-500/40 flex items-start gap-3 text-sm text-rose-200">
+          <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <h4 className="font-semibold text-rose-100 flex items-center gap-2">
+              <span>Generation Error [{apiError.code}]</span>
+            </h4>
+            <p className="text-xs text-rose-300/90 leading-relaxed">
+              {apiError.message}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Main 2-Column Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -72,10 +174,12 @@ function EditorContent() {
           <div className="space-y-4">
             <div className="flex items-center justify-between text-xs text-slate-400 font-semibold px-1">
               <span>Interview Questions ({template.questions.length})</span>
-              <span>{answeredCount} of {template.questions.length} Answered</span>
+              <span>
+                {answeredCount} of {template.questions.length} Answered
+              </span>
             </div>
 
-            {/* Dynamic rendering of questions */}
+            {/* Dynamic rendering of questions with field-level errors */}
             {template.questions.map((question, idx) => (
               <QuestionCard
                 key={question.id}
@@ -83,6 +187,7 @@ function EditorContent() {
                 index={idx}
                 value={answers[question.id] || ""}
                 onChange={(val) => handleAnswerChange(question.id, val)}
+                error={fieldErrors[question.id]}
               />
             ))}
           </div>
@@ -97,23 +202,38 @@ function EditorContent() {
             <Button
               variant="primary"
               size="md"
-              icon={<Sparkles className="w-4 h-4" />}
-              iconPosition="right"
-              onClick={() =>
-                alert(
-                  "Answers saved in structured state! Next sprint connects this engine to OpenAI."
+              disabled={isGenerating}
+              icon={
+                isGenerating ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
                 )
               }
+              iconPosition="right"
+              onClick={() => handleGenerate()}
             >
-              Generate Draft
+              {isGenerating ? "Generating Post..." : "Generate Draft"}
             </Button>
           </div>
         </div>
 
-        {/* Right Column: Content Preview & Toolbar (5 cols) */}
+        {/* Right Column: Content Preview & Refinement Toolbar (5 cols) */}
         <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-24">
-          <ContentPreview template={template} answers={answers} />
-          <EditorToolbar />
+          <ContentPreview
+            template={template}
+            answers={answers}
+            generatedResult={generatedResult}
+            isGenerating={isGenerating}
+          />
+
+          <EditorToolbar
+            onRefine={(type) => handleGenerate(type)}
+            onCopy={handleCopy}
+            isGenerating={isGenerating}
+            hasGeneratedDraft={Boolean(generatedResult)}
+            copied={copied}
+          />
         </div>
       </div>
     </div>
